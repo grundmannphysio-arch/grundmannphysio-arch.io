@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EA Kalkulátor · Energetická dostupnost pro sportovce</title>
+<meta name="description" content="Spočítej svou energetickou dostupnost (EA) podle REDs/IOC 2023. Zadej hmotnost, tukovou hmotu, typ sportu a tréninkový objem.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0A1628;
+    --teal: #00B5CC;
+    --teal-light: #e0f7fb;
+    --teal-mid: #b2eaf3;
+    --white: #ffffff;
+    --gray-50: #f8f9fa;
+    --gray-100: #f0f2f4;
+    --gray-200: #e2e6ea;
+    --gray-400: #9aa3af;
+    --gray-600: #5c6470;
+    --gray-800: #2d3340;
+    --red-bg: #fff0f0;
+    --red-text: #c0392b;
+    --orange-bg: #fff7ed;
+    --orange-text: #b45309;
+    --green-bg: #f0fdf4;
+    --green-text: #166534;
+    --optimal-bg: #e8fdf8;
+    --optimal-text: #065f46;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --shadow-sm: 0 1px 3px rgba(10,22,40,0.08);
+    --shadow-md: 0 4px 16px rgba(10,22,40,0.10);
+    --shadow-lg: 0 8px 32px rgba(10,22,40,0.13);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--gray-50);
+    color: var(--gray-800);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* HERO */
+  .hero {
+    background: var(--navy);
+    padding: 52px 24px 64px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 120%, rgba(0,181,204,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(0,181,204,0.15);
+    border: 1px solid rgba(0,181,204,0.3);
+    color: var(--teal);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    padding: 5px 14px;
+    border-radius: 99px;
+    margin-bottom: 18px;
+  }
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(26px, 6vw, 44px);
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.15;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 span { color: var(--teal); }
+  .hero-sub {
+    color: rgba(255,255,255,0.55);
+    font-size: 14px;
+    max-width: 420px;
+    margin: 0 auto;
+    font-weight: 300;
+  }
+
+  /* LAYOUT */
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+
+  .main-wrap {
+    padding: 28px 0 60px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+    padding: 20px 22px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .card-title {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .card-title svg { width: 15px; height: 15px; opacity: 0.7; }
+
+  /* SLIDERS */
+  .slider-group { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 20px; }
+  @media (max-width: 480px) { .slider-group { grid-template-columns: 1fr; } }
+
+  .slider-field { display: flex; flex-direction: column; gap: 6px; }
+  .slider-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .slider-label .unit { font-family: var(--font-mono); font-size: 11px; color: var(--gray-400); }
+  .slider-val {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--navy);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--gray-200);
+    border-radius: 99px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--navy);
+    border: 2px solid var(--teal);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s;
+    box-shadow: 0 0 0 3px rgba(0,181,204,0.15);
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    background: var(--navy); border: 2px solid var(--teal);
+    border-radius: 50%; cursor: pointer; border: none;
+  }
+
+  /* MINI STATS */
+  .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .mini-stat {
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    border: 1px solid var(--gray-100);
+  }
+  .mini-stat .ms-label { font-size: 11px; color: var(--gray-400); margin-bottom: 2px; font-family: var(--font-mono); }
+  .mini-stat .ms-val { font-size: 15px; font-weight: 500; color: var(--navy); font-family: var(--font-mono); }
+
+  /* SPORT BUTTONS */
+  .sport-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  @media (max-width: 400px) { .sport-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .sport-btn {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: 10px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-body);
+  }
+  .sport-btn .sb-icon { font-size: 22px; line-height: 1; }
+  .sport-btn .sb-name { font-size: 12px; font-weight: 500; color: var(--gray-600); text-align: center; line-height: 1.3; }
+  .sport-btn .sb-met { font-family: var(--font-mono); font-size: 10px; color: var(--gray-400); }
+  .sport-btn:hover { border-color: var(--teal); background: var(--teal-light); }
+  .sport-btn.active {
+    background: var(--navy);
+    border-color: var(--navy);
+  }
+  .sport-btn.active .sb-name { color: var(--white); }
+  .sport-btn.active .sb-met { color: var(--teal); }
+
+  /* RESULT */
+  .result-card {
+    border-radius: var(--radius-xl);
+    padding: 28px 24px 22px;
+    margin-bottom: 14px;
+    border: 1px solid;
+    transition: all 0.4s ease;
+    box-shadow: var(--shadow-md);
+  }
+  .result-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .result-num {
+    font-family: var(--font-display);
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    transition: color 0.4s;
+  }
+  .result-unit-block { padding-bottom: 10px; }
+  .result-unit-block .ru-top { font-size: 12px; font-weight: 500; opacity: 0.65; line-height: 1.2; }
+  .result-unit-block .ru-bot { font-size: 11px; opacity: 0.5; font-family: var(--font-mono); }
+  .result-zone-label {
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    letter-spacing: -0.01em;
+    transition: color 0.4s;
+  }
+
+  /* ZONE BAR */
+  .zone-container { margin: 0 0 10px; }
+  .zone-track {
+    position: relative;
+    height: 10px;
+    border-radius: 99px;
+    overflow: visible;
+    background: linear-gradient(to right, #f09595 0%, #f09595 18%, #fac775 18%, #fac775 33%, #c0dd97 33%, #c0dd97 55%, #9fe1cb 55%, #9fe1cb 100%);
+    margin-bottom: 6px;
+  }
+  .zone-needle {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 22px;
+    background: var(--navy);
+    border-radius: 3px;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    transition: left 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 2;
+  }
+  .zone-scale {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--gray-400);
+  }
+  .zone-legend {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-top: 10px;
+  }
+  .zone-leg-item {
+    border-radius: var(--radius-sm);
+    padding: 4px 6px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    line-height: 1.3;
+  }
+
+  /* DETAIL GRID */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .detail-item {
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    border: 1px solid var(--gray-100);
+  }
+  .detail-item .di-label { font-size: 11px; color: var(--gray-400); font-family: var(--font-mono); margin-bottom: 2px; }
+  .detail-item .di-val { font-size: 15px; font-weight: 500; font-family: var(--font-mono); color: var(--navy); }
+
+  /* RECO */
+  .reco-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .reco-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--gray-600);
+  }
+  .reco-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 12px;
+    margin-top: 1px;
+  }
+
+  hr.divider { border: none; border-top: 1px solid var(--gray-100); margin: 16px 0; }
+
+  .footnote {
+    font-size: 11px;
+    color: var(--gray-400);
+    line-height: 1.6;
+    font-family: var(--font-mono);
+  }
+
+  /* FOOTER */
+  .footer {
+    background: var(--navy);
+    padding: 24px;
+    text-align: center;
+  }
+  .footer-logo {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--teal);
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .footer-text { font-size: 11px; color: rgba(255,255,255,0.35); font-family: var(--font-mono); }
+
+  /* ANIM */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card, .result-card { animation: fadeUp 0.4s ease both; }
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.1s; }
+  .card:nth-child(3) { animation-delay: 0.15s; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-badge">REDs / IOC 2023 · Mountjoy et al.</div>
+  <h1>Energetická<br><span>dostupnost</span></h1>
+  <p class="hero-sub">Zjisti, zda máš dostatek energie pro výkon i zdraví. Zadej své parametry níže.</p>
+</header>
+
+<main class="main-wrap">
+<div class="container">
+
+  <!-- TĚLESNÉ PARAMETRY -->
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Tělesné parametry
+    </div>
+    <div class="slider-group">
+      <div class="slider-field">
+        <div class="slider-label">
+          Hmotnost <span class="unit">kg</span>
+          <span class="slider-val" id="weightVal">75</span>
+        </div>
+        <input type="range" id="weight" min="40" max="140" step="1" value="75">
+      </div>
+      <div class="slider-field">
+        <div class="slider-label">
+          Tuková hmota <span class="unit">%</span>
+          <span class="slider-val" id="fatpctVal">18 %</span>
+        </div>
+        <input type="range" id="fatpct" min="4" max="40" step="0.5" value="18">
+      </div>
+    </div>
+    <div class="mini-stats">
+      <div class="mini-stat">
+        <div class="ms-label">FFM — beztuková hmota</div>
+        <div class="ms-val" id="ffmVal">—</div>
+      </div>
+      <div class="mini-stat">
+        <div class="ms-label">Tuková hmota</div>
+        <div class="ms-val" id="fatKgVal">—</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;border-radius:var(--radius-md);border:1px solid var(--gray-100);overflow:hidden;">
+      <div style="background:var(--gray-50);padding:8px 14px;border-bottom:1px solid var(--gray-100);">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--gray-400);font-family:var(--font-mono);">Referenční hodnoty % tuku — sportovci 15–18 let</span>
+      </div>
+      <div style="padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;font-family:var(--font-mono);">♂ Muži</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--gray-600);">Vytrvalost / atletika</span>
+              <span style="font-size:12px;font-family:var(--font-mono);font-weight:500;color:var(--navy);background:var(--gray-100);padding:1px 7px;border-radius:99px;">8–12 %</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--gray-600);">Týmové / silové sporty</span>
+              <span style="font-size:12px;font-family:var(--font-mono);font-weight:500;color:var(--navy);background:var(--gray-100);padding:1px 7px;border-radius:99px;">12–16 %</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--gray-600);">Min. zdravotní hranice</span>
+              <span style="font-size:12px;font-family:var(--font-mono);font-weight:500;color:#c0392b;background:#fff0f0;padding:1px 7px;border-radius:99px;">≥ 5 %</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;font-family:var(--font-mono);">♀ Ženy</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--gray-600);">Vytrvalost / atletika</span>
+              <span style="font-size:12px;font-family:var(--font-mono);font-weight:500;color:var(--navy);background:var(--gray-100);padding:1px 7px;border-radius:99px;">14–20 %</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--gray-600);">Týmové / silové sporty</span>
+              <span style="font-size:12px;font-family:var(--font-mono);font-weight:500;color:var(--navy);background:var(--gray-100);padding:1px 7px;border-radius:99px;">18–25 %</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:12px;color:var(--gray-600);">Min. zdravotní hranice</span>
+              <span style="font-size:12px;font-family:var(--font-mono);font-weight:500;color:#c0392b;background:#fff0f0;padding:1px 7px;border-radius:99px;">≥ 12 %</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div style="padding:6px 14px 10px;border-top:1px solid var(--gray-100);">
+        <span style="font-size:10px;color:var(--gray-400);font-family:var(--font-mono);line-height:1.5;">
+          Orientační hodnoty dle ACSM &amp; Lohman (1992) pro aktivní sportovce 15–18 let. Individuální variabilita je značná — nízký % tuku sám o sobě není cíl ani problém; záleží na kontextu, výkonu a zdravotním stavu.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TYP SPORTU -->
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      Typ sportu / aktivity
+    </div>
+    <div class="sport-grid" id="sportGrid">
+      <button class="sport-btn active" data-met-min="5.5" data-met-max="13.0">
+        <span class="sb-icon">🏃</span>
+        <span class="sb-name">Atletika / sprinty</span>
+        <span class="sb-met">MET 5–13</span>
+      </button>
+      <button class="sport-btn" data-met-min="5.0" data-met-max="12.0">
+        <span class="sb-icon">🚴</span>
+        <span class="sb-name">Vytrvalost</span>
+        <span class="sb-met">MET 5–12</span>
+      </button>
+      <button class="sport-btn" data-met-min="5.0" data-met-max="11.0">
+        <span class="sb-icon">🏅</span>
+        <span class="sb-name">Víceboj</span>
+        <span class="sb-met">MET 5–11</span>
+      </button>
+      <button class="sport-btn" data-met-min="4.0" data-met-max="10.0">
+        <span class="sb-icon">🛶</span>
+        <span class="sb-name">Kanoistika</span>
+        <span class="sb-met">MET 4–10</span>
+      </button>
+      <button class="sport-btn" data-met-min="4.0" data-met-max="10.0">
+        <span class="sb-icon">⚽</span>
+        <span class="sb-name">Týmový sport</span>
+        <span class="sb-met">MET 4–10</span>
+      </button>
+      <button class="sport-btn" data-met-min="4.5" data-met-max="10.0">
+        <span class="sb-icon">🏊</span>
+        <span class="sb-name">Plavání</span>
+        <span class="sb-met">MET 4.5–10</span>
+      </button>
+      <button class="sport-btn" data-met-min="3.5" data-met-max="8.0">
+        <span class="sb-icon">🛷</span>
+        <span class="sb-name">Bob / skeleton</span>
+        <span class="sb-met">MET 3.5–8</span>
+      </button>
+    </div>
+
+    <div style="margin-top:18px;">
+      <div class="slider-field">
+        <div class="slider-label">
+          Intenzita tréninku
+          <span class="slider-val" id="intensityLabel">Střední — rozvíjející trénink</span>
+        </div>
+        <input type="range" id="intensity" min="1" max="5" step="1" value="3" style="margin:6px 0 4px;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray-400);font-family:var(--font-mono);margin-top:2px;">
+          <span>Regenerace</span>
+          <span>Rozvoj</span>
+          <span>Závodní tempo</span>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:8px 12px;background:var(--gray-50);border:1px solid var(--gray-100);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;color:var(--gray-400);font-family:var(--font-mono);">Výsledný MET</span>
+        <span style="font-size:15px;font-weight:500;font-family:var(--font-mono);color:var(--navy);" id="metDisplay">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRÉNINK & PŘÍJEM -->
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Trénink &amp; energetický příjem
+    </div>
+    <div class="slider-group">
+      <div class="slider-field">
+        <div class="slider-label">
+          Tréninková hodiny/den <span class="unit">hod</span>
+          <span class="slider-val" id="trainHrsVal">1.5 h</span>
+        </div>
+        <input type="range" id="trainHrs" min="0.25" max="6" step="0.25" value="1.5">
+      </div>
+      <div class="slider-field">
+        <div class="slider-label">
+          Příjem energie <span class="unit">kcal/den</span>
+          <span class="slider-val" id="intakeVal">2 200</span>
+        </div>
+        <input type="range" id="intake" min="1000" max="6000" step="50" value="2200">
+      </div>
+    </div>
+  </div>
+
+  <!-- VÝSLEDEK -->
+  <div class="result-card" id="resultCard" style="background:#e8fdf8;border-color:#9fe1cb;">
+    <div class="result-top">
+      <div class="result-num" id="eaValue" style="color:#065f46;">—</div>
+      <div class="result-unit-block">
+        <div class="ru-top">kcal / kg FFM</div>
+        <div class="ru-bot">za den</div>
+      </div>
+    </div>
+    <div class="result-zone-label" id="eaLabel" style="color:#065f46;">Výsledek</div>
+
+    <div class="zone-container">
+      <div class="zone-track">
+        <div class="zone-needle" id="zoneNeedle" style="left:50%"></div>
+      </div>
+      <div class="zone-scale">
+        <span>0</span><span>30</span><span>45</span><span>55</span><span>70+</span>
+      </div>
+      <div class="zone-legend">
+        <div class="zone-leg-item" style="background:#fff0f0;color:#c0392b;">Závažná<br>DEA</div>
+        <div class="zone-leg-item" style="background:#fff7ed;color:#b45309;">Mírná<br>DEA</div>
+        <div class="zone-leg-item" style="background:#f0fdf4;color:#166534;">Subopt.</div>
+        <div class="zone-leg-item" style="background:#e8fdf8;color:#065f46;">Optimum</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAILNÍ VÝPOČET -->
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+      Detailní výpočet
+    </div>
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="di-label">EEE — výdej cvičení</div>
+        <div class="di-val" id="eeeVal">—</div>
+      </div>
+      <div class="detail-item">
+        <div class="di-label">Čistý příjem (EI − EEE)</div>
+        <div class="di-val" id="netVal">—</div>
+      </div>
+      <div class="detail-item">
+        <div class="di-label">Odhadovaný TEE</div>
+        <div class="di-val" id="teeVal">—</div>
+      </div>
+      <div class="detail-item">
+        <div class="di-label">Energetická bilance</div>
+        <div class="di-val" id="balVal">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERPRETACE -->
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      Interpretace &amp; doporučení
+    </div>
+    <ul class="reco-list" id="recoList"></ul>
+    <hr class="divider">
+    <p class="footnote">
+      EA = (EI − EEE) / FFM &nbsp;·&nbsp; EEE vychází z MET hodnot dle sportu × hmotnost × čas.
+      Prahy dle Mountjoy et al. 2023 (Br J Sports Med). Kalkulátor neslouží jako klinická diagnóza — 
+      pro individuální posouzení se obraťte na sportovního lékaře nebo nutričního terapeuta.
+    </p>
+  </div>
+
+</div>
+</main>
+
+<footer class="footer">
+  <div class="footer-logo">MEDISCOPE</div>
+  <div class="footer-text">Evidenčně podložená fyzioterapie &amp; sportovní medicína</div>
+  <div style="margin-top:14px;">
+    <a href="https://www.instagram.com/mediscope.cz" target="_blank" rel="noopener"
+       style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:99px;padding:7px 16px;transition:background 0.15s;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00B5CC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+        <circle cx="12" cy="12" r="4"/>
+        <circle cx="17.5" cy="6.5" r="0.5" fill="#00B5CC" stroke="none"/>
+      </svg>
+      <span style="font-family:'DM Mono',monospace;font-size:13px;color:#00B5CC;letter-spacing:0.03em;">@mediscope.cz</span>
+    </a>
+  </div>
+</footer>
+
+<script>
+  // Sport: min/max MET range. Intensity slider 1-5 interpolates linearly.
+  let metMin = 5.5;
+  let metMax = 13.0;
+
+  const INTENSITY_LABELS = [
+    'Velmi lehká — regenerace / technika',
+    'Lehká — rozcvičení / aerobní základ',
+    'Střední — rozvíjející trénink',
+    'Těžká — tempový / závodní trénink',
+    'Maximální — závod / test výkonu',
+  ];
+
+  const r0 = v => Math.round(v);
+  const r1 = v => Math.round(v * 10) / 10;
+  const fmt = v => v.toLocaleString('cs-CZ');
+
+  function getCurrentMet() {
+    const intensity = parseInt(document.getElementById('intensity').value); // 1–5
+    // linear interpolation: 1 → metMin, 5 → metMax
+    return metMin + (metMax - metMin) * (intensity - 1) / 4;
+  }
+
+  function updateIntensityUI() {
+    const intensity = parseInt(document.getElementById('intensity').value);
+    document.getElementById('intensityLabel').textContent = INTENSITY_LABELS[intensity - 1];
+    const met = getCurrentMet();
+    document.getElementById('metDisplay').textContent = 'MET ' + r1(met);
+  }
+
+  function calc() {
+    const w   = parseFloat(document.getElementById('weight').value);
+    const fp  = parseFloat(document.getElementById('fatpct').value);
+    const hrs = parseFloat(document.getElementById('trainHrs').value);
+    const ei  = parseFloat(document.getElementById('intake').value);
+
+    const ffm   = w * (1 - fp / 100);
+    const fatKg = w * fp / 100;
+    document.getElementById('ffmVal').textContent   = r1(ffm) + ' kg';
+    document.getElementById('fatKgVal').textContent = r1(fatKg) + ' kg';
+
+    const met = getCurrentMet();
+    const eee = met * w * hrs;
+    const net = ei - eee;
+    const ea  = net / ffm;
+
+    const bmr = 10 * w + 6.25 * 175 - 5 * 25 + 5;
+    const tee = bmr * 1.55 + eee * 0.1;
+    const bal = ei - tee;
+
+    document.getElementById('eeeVal').textContent = fmt(r0(eee)) + ' kcal';
+    document.getElementById('netVal').textContent = fmt(r0(net)) + ' kcal';
+    document.getElementById('teeVal').textContent = fmt(r0(tee)) + ' kcal/den';
+
+    const balEl = document.getElementById('balVal');
+    balEl.textContent = (bal >= 0 ? '+' : '') + fmt(r0(bal)) + ' kcal';
+    balEl.style.color = bal < -500 ? '#c0392b' : bal > 300 ? '#166534' : '#0a1628';
+
+    const eaR = r1(ea);
+    document.getElementById('eaValue').textContent = eaR;
+
+    let bg, border, txtColor, label, recos;
+
+    if (ea < 30) {
+      bg = '#fff0f0'; border = '#f09595'; txtColor = '#c0392b';
+      label = 'Závažná energetická nedostupnost';
+      recos = [
+        { icon: '⚠️', text: 'EA pod 30 kcal/kg FFM/den — vysoké riziko REDs syndromu. Okamžité navýšení příjmu a/nebo redukce tréninkového objemu.' },
+        { icon: '🩺', text: 'Doporučena konzultace se sportovním lékařem, nutričním terapeutem a psychologem (RED-S triad).' },
+        { icon: '🦴', text: 'Riziko: stresové fraktury, hormonální dysfunkce, imunodeprese, kardiovaskulární komplikace, poruchy spánku.' },
+        { icon: '🍽️', text: 'Priorita: navýšit příjem min. o 300–500 kcal/den, přednostně sacharidy ve stravě kolem tréninku.' },
+      ];
+    } else if (ea < 45) {
+      bg = '#fff7ed'; border = '#fac775'; txtColor = '#b45309';
+      label = 'Mírná energetická nedostupnost';
+      recos = [
+        { icon: '⚡', text: 'EA 30–45 kcal/kg FFM/den — subklinické projevy REDs jsou reálné: únava, pokles výkonu, změny nálady, menší chuť k jídlu.' },
+        { icon: '🥗', text: 'Zvýšit příjem sacharidů (cíl ≥5 g/kg/den), nekrátit kalorie kolem tréninkových oken.' },
+        { icon: '📊', text: 'Monitoruj: klidovou SF, HRV, subjektivní únavu, kvalitu spánku, menstruační cyklus / libido, výkon.' },
+      ];
+    } else if (ea < 55) {
+      bg = '#f0fdf4'; border = '#c0dd97'; txtColor = '#166534';
+      label = 'Suboptimální — přijatelné krátkodobě';
+      recos = [
+        { icon: '✅', text: 'EA 45–55 kcal/kg FFM/den je funkční pro většinu sportovců, ale suboptimální pro maximální adaptaci.' },
+        { icon: '🎯', text: 'Ve fázích objemu, silové adaptace nebo při vysokém tréninkovém objemu usiluj o ≥50 kcal/kg FFM/den.' },
+        { icon: '🕐', text: 'Pravidelné jídlo každé 3–4 hodiny. Vyhni se tréninku nalačno delšímu než 60 minut.' },
+      ];
+    } else {
+      bg = '#e8fdf8'; border = '#9fe1cb'; txtColor = '#065f46';
+      label = 'Optimální energetická dostupnost ✓';
+      recos = [
+        { icon: '🏆', text: 'EA ≥ 45 kcal/kg FFM/den — ideální pásmo pro výkon, zdraví a dlouhodobou sportovní adaptaci.' },
+        { icon: '📈', text: 'Udržuj příjem i v dnech bez tréninku. Upravuj příjem dle aktuálního výdeje, ne paušálně.' },
+        { icon: '💪', text: 'Maximalizuj proteinovou syntézu: příjem bílkovin ≥ 1.6 g/kg/den (optimálně 2.0–2.2 g/kg při silových sportech).' },
+      ];
+    }
+
+    const rc = document.getElementById('resultCard');
+    rc.style.background  = bg;
+    rc.style.borderColor = border;
+    document.getElementById('eaValue').style.color = txtColor;
+    document.getElementById('eaLabel').textContent = label;
+    document.getElementById('eaLabel').style.color = txtColor;
+
+    const pct = Math.min(Math.max((ea / 70) * 100, 1), 99);
+    document.getElementById('zoneNeedle').style.left = pct + '%';
+
+    const list = document.getElementById('recoList');
+    list.innerHTML = recos.map(r =>
+      `<li class="reco-item">
+        <span class="reco-icon" style="background:${bg};color:${txtColor}">${r.icon}</span>
+        <span>${r.text}</span>
+      </li>`
+    ).join('');
+  }
+
+  // Sliders
+  const sliders = [
+    { id: 'weight',    outId: 'weightVal',    fmt: v => v + ' kg' },
+    { id: 'fatpct',    outId: 'fatpctVal',    fmt: v => v + ' %' },
+    { id: 'trainHrs',  outId: 'trainHrsVal',  fmt: v => v + ' h' },
+    { id: 'intake',    outId: 'intakeVal',    fmt: v => parseFloat(v).toLocaleString('cs-CZ') },
+  ];
+  sliders.forEach(({ id, outId, fmt }) => {
+    document.getElementById(id).addEventListener('input', function() {
+      document.getElementById(outId).textContent = fmt(this.value);
+      calc();
+    });
+  });
+
+  // Intensity slider
+  document.getElementById('intensity').addEventListener('input', function() {
+    updateIntensityUI();
+    calc();
+  });
+
+  // Sport buttons — update metMin/metMax range
+  document.querySelectorAll('.sport-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.sport-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      metMin = parseFloat(btn.dataset.metMin);
+      metMax = parseFloat(btn.dataset.metMax);
+      updateIntensityUI();
+      calc();
+    });
+  });
+
+  updateIntensityUI();
+  calc();
+</script>
+</body>
+</html>
